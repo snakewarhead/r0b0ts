@@ -8,7 +8,7 @@ const (
 	configPath = "./resources/log.json"
 	// configFile = "/home/lin/Work/go-bench/src/github.com/snakewarhead/r0b0ts/resources/log.json"
 
-	category = "gate"
+	category = "robot"
 )
 
 var (

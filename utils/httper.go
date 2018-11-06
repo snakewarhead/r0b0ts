@@ -1,18 +1,18 @@
 package utils
 
 import (
-	"io"
-	"encoding/json"
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"time"
-	"errors"
 )
 
 var (
-	httpClient = &http.Client {
+	httpClient = &http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			DialContext: (&net.Dialer{
@@ -30,34 +30,43 @@ var (
 	errNotFound = errors.New("resource not found")
 )
 
-func HttpGet(url string, out interface{}) error {
+func HttpGet(url string) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return fmt.Errorf("NewRequest: %s", err)
+		return nil, fmt.Errorf("NewRequest: %s", err)
 	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("%s: %s", req.URL.String(), err)
+		return nil, fmt.Errorf("%s: %s", req.URL.String(), err)
 	}
 	defer resp.Body.Close()
 
 	var cnt bytes.Buffer
 	_, err = io.Copy(&cnt, resp.Body)
 	if err != nil {
-		return fmt.Errorf("Copy: %s", err)
+		return nil, fmt.Errorf("Copy: %s", err)
 	}
 
 	if resp.StatusCode == 404 {
-		return errNotFound
+		return nil, errNotFound
 	}
 	if resp.StatusCode > 299 {
-		return fmt.Errorf("%s: status code=%d, body=%s", req.URL.String(), resp.StatusCode, cnt.String())
+		return nil, fmt.Errorf("%s: status code=%d, body=%s", req.URL.String(), resp.StatusCode, cnt.String())
 	}
 
-	fmt.Println(string(cnt.Bytes()))
+	return cnt.Bytes(), nil
+}
 
-	if err := json.Unmarshal(cnt.Bytes(), out); err != nil {
+func HttpGetVar(url string, out interface{}) error {
+	cnt, err := HttpGet(url)
+	if err != nil {
+		return err
+	}
+
+	// fmt.Println(string(cnt))
+
+	if err = json.Unmarshal(cnt, out); err != nil {
 		return fmt.Errorf("Unmarshal: %s", err)
 	}
 

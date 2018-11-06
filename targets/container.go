@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/snakewarhead/r0b0ts/targets/llg"
 )
 
 func Startup() {
@@ -16,6 +18,6 @@ func Startup() {
 		flag.Usage()
 		os.Exit(0)
 	}
-	t := NewLLG(*playerName)
+	t := llg.NewLLG(*playerName)
 	go t.Run()
 }

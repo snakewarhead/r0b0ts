@@ -13,4 +13,7 @@
 
 # .vscode
 .vscode/
-*.log
+debugt
+
+# logs
+*.log*

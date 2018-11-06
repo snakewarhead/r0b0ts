@@ -6,8 +6,8 @@
     "files": [{
         "enable": true,
         "level": "DEBUG",
-        "filename": "gate.log",
-        "category": "gate",
+        "filename": "robot.log",
+        "category": "robot",
         "pattern": "[%D %T] [%C] [%L] (%S) %M",
         "rotate": true,
         "maxsize": "500M",
