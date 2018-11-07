@@ -2,6 +2,7 @@ package llg
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/snakewarhead/r0b0ts/utils"
 )
@@ -10,6 +11,8 @@ const (
 	llgURL   = "https://api.lelego.io/"
 	tableURL = llgURL + "gameTable"
 	gameURL  = llgURL + "game/"
+
+	gameDurationMax = 70
 )
 
 type gameState int
@@ -18,7 +21,7 @@ const (
 	unknown gameState = iota
 	initTable
 	drawingCards
-	settle
+	endTable
 )
 
 type gameResult struct {
@@ -29,15 +32,15 @@ type gameResult struct {
 	HandNumber  int           `json:"handNumber"`
 	PlayerCards []interface{} `json:"playerCards"`
 
-	PlayerWin   bool          `json:"playerWin"`
-	BankerWin   bool          `json:"bankerWin"`
-	TieWin  	bool          `json:"tieWin"`
+	PlayerWin bool `json:"playerWin"`
+	BankerWin bool `json:"bankerWin"`
+	TieWin    bool `json:"tieWin"`
 
-	PlayerPair  bool          `json:"playerPair"`
-	BankerPair  bool          `json:"bankerPair"`
+	PlayerPair bool `json:"playerPair"`
+	BankerPair bool `json:"bankerPair"`
 
-	GameOutcome string        `json:"gameOutcome"`
-	V           int           `json:"__v"`
+	GameOutcome string `json:"gameOutcome"`
+	V           int    `json:"__v"`
 }
 
 func (r *gameResult) isInvalid() bool {
@@ -67,6 +70,9 @@ type gameTable struct {
 
 	state  gameState   `json:"-"`
 	result *gameResult `json:"-"`
+
+	startTimeInServer int64 `json:"-"`
+	elapseInServer    int64 `json:"-"`
 }
 
 func (t *gameTable) isInvalid() bool {
@@ -83,7 +89,7 @@ func (t *gameTable) updateState() {
 		// get result
 		if t.result == nil {
 			results := make([]*gameResult, 1)
-			if err := utils.HttpGetVar(gameURL + t.HandID, &results); err != nil {
+			if err := utils.HttpGetVar(gameURL+t.HandID, &results); err != nil {
 				utils.Logger.Error(err)
 				return
 			}
@@ -129,7 +135,17 @@ func (h *gameHistory) push(table *gameTable) {
 	current := h.peek()
 	if current != nil && current.HandID == table.HandID {
 		// update content
-		h.history[current.HandID] = table
+		h.history[current.HandID].CurrTime = table.CurrTime
+		h.history[current.HandID].DrawTime = table.DrawTime
+
+		h.history[current.HandID].PlayerBets = table.PlayerBets
+		h.history[current.HandID].PlayerPairBets = table.PlayerPairBets
+		h.history[current.HandID].TieBets = table.TieBets
+		h.history[current.HandID].BankerBets = table.BankerBets
+		h.history[current.HandID].BankerPairBets = table.BankerPairBets
+
+		h.history[current.HandID].Bets = table.Bets
+		h.history[current.HandID].Frozen = table.Frozen
 		return
 	}
 
@@ -145,10 +161,32 @@ func (h *gameHistory) push(table *gameTable) {
 	h.history[table.HandID] = table
 	h.size++
 
+	// start time
+	table.startTimeInServer = time.Now().Unix()
+
 	h.store(table)
 }
 
+func (h *gameHistory) updateHistoryState() {
+	now := time.Now().Unix()
+	for i := h.size - 1; i >= 0; i-- {
+		t := h.history[h.gameIDs[i]]
+		if t.state == endTable {
+			continue
+		}
+
+		t.elapseInServer = now - t.startTimeInServer
+		if t.elapseInServer > gameDurationMax {
+			t.state = endTable
+		}
+	}
+}
+
 func (h *gameHistory) update() error {
+	// update history state, history must be history, avoid failures to fetch current then stuck the program
+	h.updateHistoryState()
+
+	// fetch current game table
 	table := &gameTable{}
 	if err := utils.HttpGetVar(tableURL, table); err != nil {
 		return err

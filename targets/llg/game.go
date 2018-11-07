@@ -35,7 +35,7 @@ func NewLLG(player string) *llg {
 func (t *llg) Run() {
 	for {
 		t.doRun()
-		time.Sleep(1000 * time.Microsecond)
+		time.Sleep(1000 * time.Millisecond)
 	}
 }
 
