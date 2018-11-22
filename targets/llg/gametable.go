@@ -79,30 +79,35 @@ func (t *gameTable) isInvalid() bool {
 	return t.HandID == "" || t.CurrTime == 0 || t.DrawTime == 0
 }
 
+// @return micro second until drawing card
+func (t *gameTable) restTimeForBetting() int64 {
+	return t.DrawTime - t.CurrTime
+}
+
 func (t *gameTable) updateState() {
 	t.state = unknown
 	if t.CurrTime < t.DrawTime {
 		t.state = initTable
 	} else {
 		t.state = drawingCards
-
-		// get result
-		if t.result == nil {
-			results := make([]*gameResult, 1)
-			if err := utils.HttpGetVar(gameURL+t.HandID, &results); err != nil {
-				utils.Logger.Error(err)
-				return
-			}
-			if len(results) == 0 || results[0].isInvalid() {
-				utils.Logger.Error("game result is invalid")
-				return
-			}
-			t.result = results[0]
-		}
+		t.fetchGameResult()
 	}
 }
 
-const historyMax = 20
+func (t *gameTable) fetchGameResult() {
+	if t.result == nil {
+		results := make([]*gameResult, 1)
+		if err := utils.HttpGetVar(gameURL+t.HandID, &results); err != nil {
+			utils.Logger.Error(err)
+			return
+		}
+		if len(results) == 0 || results[0].isInvalid() {
+			utils.Logger.Error("game result is invalid")
+			return
+		}
+		t.result = results[0]
+	}
+}
 
 type gameHistory struct {
 	size int
