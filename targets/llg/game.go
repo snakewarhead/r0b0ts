@@ -93,18 +93,19 @@ func (t *llg) doRunLucky(dt int64) {
 		t.currentGame = currentGame
 		t.restInterval = defaultGameRestInterval
 	}
-	utils.Logger.Debug("game state -- %d", t.currentGame.state)
+	// utils.Logger.Debug("game state -- %d", t.currentGame.state)
 
 	switch t.currentGame.state {
 	case initTable:
-		rest := t.currentGame.restTimeCorrectedForBetting()
-		utils.Logger.Debug("restTimeForBetting 1 -- %d, %d", rest, t.currentGame.restTimeForBetting())
+		// rest := t.currentGame.restTimeCorrectedForBetting()
+		// utils.Logger.Debug("restTimeForBetting 1 -- %d, %d", rest, t.currentGame.restTimeForBetting())
 
 		if t.player.hasBetted(t.currentGame) {
 			return
 		}
 
-		if rest <= (int64)(2000000) {
+		rest := t.currentGame.restTimeCorrectedForBetting()
+		if rest <= (int64)(3000000) {
 			t.restInterval = 500 * time.Millisecond
 		} else {
 			// more than 2 sec, do nothing

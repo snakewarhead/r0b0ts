@@ -12,7 +12,7 @@ const (
 	tableURL = llgURL + "gameTable"
 	gameURL  = llgURL + "game/"
 
-	gameDurationMax = 70
+	gameDurationMax = 70 * time.Second
 )
 
 type gameState int
@@ -108,7 +108,7 @@ func (t *gameTable) restTimeForBetting() int64 {
 
 // This is a little bit more precise
 func (t *gameTable) restTimeCorrectedForBetting() int64 {
-	return t.restTimeCorrected
+	return t.restTimeCorrected - t.elapseInServer/1000
 }
 
 func (t *gameTable) updateState(dt int64) {
@@ -120,7 +120,9 @@ func (t *gameTable) updateState(dt int64) {
 		t.fetchGameResult()
 	}
 
-	t.restTimeCorrected -= dt / 1000
+	// http will consume the dt
+	// t.restTimeCorrected -= dt / 1000
+	// utils.Logger.Debug(t.restTimeCorrected, t.restTimeForBetting())
 }
 
 func (t *gameTable) fetchGameResult() {
@@ -199,13 +201,13 @@ func (h *gameHistory) push(table *gameTable) {
 	h.size++
 
 	// start time
-	table.startTimeInServer = time.Now().Unix()
+	table.startTimeInServer = time.Now().UnixNano()
 
 	h.store(table)
 }
 
 func (h *gameHistory) updateHistoryState() {
-	now := time.Now().Unix()
+	now := time.Now().UnixNano()
 	for i := h.size - 1; i >= 0; i-- {
 		t := h.history[h.gameIDs[i]]
 		if t.state == endTable {
@@ -213,7 +215,7 @@ func (h *gameHistory) updateHistoryState() {
 		}
 
 		t.elapseInServer = now - t.startTimeInServer
-		if t.elapseInServer > gameDurationMax {
+		if t.elapseInServer > (int64)(gameDurationMax) {
 			t.state = endTable
 		}
 	}
