@@ -73,6 +73,7 @@ func (t *llg) doRunLucky() {
 	if currentGame == nil {
 		return
 	}
+	utils.Logger.Debug("game state -- %d", currentGame.state)
 
 	switch currentGame.state {
 	case initTable:
@@ -83,18 +84,18 @@ func (t *llg) doRunLucky() {
 			return
 		}
 
-		if rest < (int64)(2000000) {
+		if rest <= (int64)(2000000) {
 			t.restInterval = 500 * time.Millisecond
 		} else {
 			// more than 2 sec, do nothing
 			return
 		}
 
-		if rest < (int64)(1000000) {
+		if rest <= (int64)(1000000) {
 			t.restInterval = 100 * time.Millisecond
 		}
 
-		if rest < (int64)(500000) {
+		if rest <= (int64)(500000) {
 			t.restInterval = 50 * time.Millisecond
 		}
 		utils.Logger.Debug("restTimeForBetting 2 -- %d", rest)
@@ -102,7 +103,7 @@ func (t *llg) doRunLucky() {
 		pre := time.Now().UnixNano()
 		currentGame.fetchGameResult()
 		aft := time.Now().UnixNano()
-		utils.Logger.Debug("fetchGameResult -- %d", (aft-pre)/(int64)(time.Millisecond))
+		utils.Logger.Debug("fetchGameResult -- %d, %v", (aft-pre)/(int64)(time.Millisecond), currentGame.result)
 		if currentGame.result == nil {
 			return
 		}

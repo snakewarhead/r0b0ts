@@ -49,22 +49,22 @@ func (r *gameResult) isInvalid() bool {
 	return empty || nobodyWin
 }
 
-func (t *gameResult) whoAreWinners() []string {
+func (r *gameResult) whoAreWinners() []string {
 	winners := make([]string, 0, 3)
 	if r.PlayerWin {
-		append(winners, "player")
+		winners = append(winners, "player")
 	}
 	if r.BankerWin {
-		append(winners, "banker")
+		winners = append(winners, "banker")
 	}
 	if r.TieWin {
-		append(winners, "tie")
+		winners = append(winners, "tie")
 	}
 	if r.PlayerPair {
-		append(winners, "playerpair")
+		winners = append(winners, "playerpair")
 	}
 	if r.BankerPair {
-		append(winners, "bankerpair")
+		winners = append(winners, "bankerpair")
 	}
 	return winners
 }
