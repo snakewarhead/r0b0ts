@@ -1,6 +1,7 @@
 package llg
 
 import (
+	"os"
 	"time"
 
 	"github.com/snakewarhead/r0b0ts/utils"
@@ -18,13 +19,16 @@ type llg struct {
 	gameHistory  *gameHistory
 	restInterval time.Duration
 	currentGame  *gameTable
+	bettimes     int
 }
 
-func NewLLG(name string) *llg {
+func NewLLG(name string, bettimes int) *llg {
 	return &llg{
 		player:       newPlayer(name),
 		gameHistory:  initGameHistory(),
 		restInterval: defaultGameRestInterval,
+		currentGame:  nil,
+		bettimes:     bettimes,
 	}
 }
 
@@ -47,6 +51,11 @@ func (t *llg) doRun(dt int64) {
 	// need never stop
 	defer utils.RecoverAndLog("llg", "doRun")
 
+	if t.bettimes < 0 {
+		utils.Logger.Info("time is up")
+		os.Exit(0)
+	}
+
 	if err := t.gameHistory.update(dt); err != nil {
 		utils.Logger.Error(err)
 		return
@@ -61,6 +70,8 @@ func (t *llg) doRun(dt int64) {
 	if currentGame != t.currentGame {
 		t.currentGame = currentGame
 		t.restInterval = defaultGameRestInterval
+
+		t.bettimes--
 	}
 	utils.Logger.Debug("game state -- %d", t.currentGame.state)
 
@@ -78,6 +89,11 @@ func (t *llg) doRunLucky(dt int64) {
 	// need never stop
 	defer utils.RecoverAndLog("llg", "doRun")
 
+	if t.bettimes < 0 {
+		utils.Logger.Info("time is up")
+		os.Exit(0)
+	}
+
 	if err := t.gameHistory.update(dt); err != nil {
 		utils.Logger.Error(err)
 		return
@@ -92,6 +108,8 @@ func (t *llg) doRunLucky(dt int64) {
 	if currentGame != t.currentGame {
 		t.currentGame = currentGame
 		t.restInterval = defaultGameRestInterval
+
+		t.bettimes--
 	}
 	// utils.Logger.Debug("game state -- %d", t.currentGame.state)
 
