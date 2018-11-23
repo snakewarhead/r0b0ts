@@ -17,6 +17,7 @@ type llg struct {
 	player       *player
 	gameHistory  *gameHistory
 	restInterval time.Duration
+	currentGame  *gameTable
 }
 
 func NewLLG(name string) *llg {
@@ -28,17 +29,25 @@ func NewLLG(name string) *llg {
 }
 
 func (t *llg) Run() {
+	var now, last, delta int64
+	now = time.Now().UnixNano()
+	last = now
 	for {
-		t.doRunLucky()
+		now = time.Now().UnixNano()
+		delta = now - last
+
+		t.doRunLucky(delta)
 		time.Sleep(t.restInterval)
+
+		last = now
 	}
 }
 
-func (t *llg) doRun() {
+func (t *llg) doRun(dt int64) {
 	// need never stop
 	defer utils.RecoverAndLog("llg", "doRun")
 
-	if err := t.gameHistory.update(); err != nil {
+	if err := t.gameHistory.update(dt); err != nil {
 		utils.Logger.Error(err)
 		return
 	}
@@ -48,8 +57,14 @@ func (t *llg) doRun() {
 	if currentGame == nil {
 		return
 	}
+	// new game now
+	if currentGame != t.currentGame {
+		t.currentGame = currentGame
+		t.restInterval = defaultGameRestInterval
+	}
+	utils.Logger.Debug("game state -- %d", t.currentGame.state)
 
-	switch currentGame.state {
+	switch t.currentGame.state {
 	case initTable:
 		// bet
 	case drawingCards:
@@ -59,11 +74,11 @@ func (t *llg) doRun() {
 	}
 }
 
-func (t *llg) doRunLucky() {
+func (t *llg) doRunLucky(dt int64) {
 	// need never stop
 	defer utils.RecoverAndLog("llg", "doRun")
 
-	if err := t.gameHistory.update(); err != nil {
+	if err := t.gameHistory.update(dt); err != nil {
 		utils.Logger.Error(err)
 		return
 	}
@@ -73,14 +88,19 @@ func (t *llg) doRunLucky() {
 	if currentGame == nil {
 		return
 	}
-	utils.Logger.Debug("game state -- %d", currentGame.state)
+	// new game now
+	if currentGame != t.currentGame {
+		t.currentGame = currentGame
+		t.restInterval = defaultGameRestInterval
+	}
+	utils.Logger.Debug("game state -- %d", t.currentGame.state)
 
-	switch currentGame.state {
+	switch t.currentGame.state {
 	case initTable:
-		rest := currentGame.restTimeForBetting()
-		utils.Logger.Debug("restTimeForBetting 1 -- %d", rest)
+		rest := t.currentGame.restTimeCorrectedForBetting()
+		utils.Logger.Debug("restTimeForBetting 1 -- %d, %d", rest, t.currentGame.restTimeForBetting())
 
-		if t.player.hasBetted(currentGame) {
+		if t.player.hasBetted(t.currentGame) {
 			return
 		}
 
@@ -101,19 +121,19 @@ func (t *llg) doRunLucky() {
 		utils.Logger.Debug("restTimeForBetting 2 -- %d", rest)
 
 		pre := time.Now().UnixNano()
-		currentGame.fetchGameResult()
+		t.currentGame.fetchGameResult()
 		aft := time.Now().UnixNano()
-		utils.Logger.Debug("fetchGameResult -- %d, %v", (aft-pre)/(int64)(time.Millisecond), currentGame.result)
-		if currentGame.result == nil {
+		utils.Logger.Debug("fetchGameResult -- %d, %v", (aft-pre)/(int64)(time.Millisecond), t.currentGame.result)
+		if t.currentGame.result == nil {
 			return
 		}
 		// betting
-		winners := currentGame.result.whoAreWinners()
+		winners := t.currentGame.result.whoAreWinners()
 		if len(winners) == 0 {
 			return
 		}
-		memo := currentGame.HandID + ":" + winners[0]
-		t.player.betting(currentGame, memo, "1.0000")
+		memo := t.currentGame.HandID + ":" + winners[0]
+		t.player.betting(t.currentGame, memo, "1.0000")
 
 	case drawingCards:
 		t.restInterval = defaultGameRestInterval

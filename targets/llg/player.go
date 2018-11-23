@@ -24,13 +24,13 @@ type betInfo struct {
 
 type player struct {
 	name       string
-	betHistory map[string]*betInfo
+	betHistory *utils.LimitStackMap
 }
 
 func newPlayer(name string) *player {
 	return &player{
 		name:       name,
-		betHistory: make(map[string]*betInfo),
+		betHistory: utils.NewLimitStackMap(historyMax),
 	}
 }
 
@@ -39,10 +39,10 @@ func (p *player) betting(currentGame *gameTable, memo, amount string) error {
 	utils.Logger.Info("txid:%s, err:%v", txid, err)
 
 	// betted yet if err occures
-	p.betHistory[currentGame.HandID] = &betInfo{currentGame.HandID, txid, memo, err == nil}
+	p.betHistory.Push(currentGame.HandID, &betInfo{currentGame.HandID, txid, memo, err == nil})
 	return err
 }
 
 func (p *player) hasBetted(currentGame *gameTable) bool {
-	return p.betHistory[currentGame.HandID] != nil
+	return p.betHistory.Find(currentGame.HandID) != nil
 }

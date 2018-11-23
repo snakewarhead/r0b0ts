@@ -93,6 +93,8 @@ type gameTable struct {
 
 	startTimeInServer int64 `json:"-"`
 	elapseInServer    int64 `json:"-"`
+
+	restTimeCorrected int64 `json:"-"`
 }
 
 func (t *gameTable) isInvalid() bool {
@@ -104,7 +106,12 @@ func (t *gameTable) restTimeForBetting() int64 {
 	return t.DrawTime - t.CurrTime
 }
 
-func (t *gameTable) updateState() {
+// This is a little bit more precise
+func (t *gameTable) restTimeCorrectedForBetting() int64 {
+	return t.restTimeCorrected
+}
+
+func (t *gameTable) updateState(dt int64) {
 	t.state = unknown
 	if t.CurrTime < t.DrawTime {
 		t.state = initTable
@@ -112,6 +119,8 @@ func (t *gameTable) updateState() {
 		t.state = drawingCards
 		t.fetchGameResult()
 	}
+
+	t.restTimeCorrected -= dt / 1000
 }
 
 func (t *gameTable) fetchGameResult() {
@@ -182,6 +191,9 @@ func (h *gameHistory) push(table *gameTable) {
 		h.size--
 	}
 
+	// calculate the correction of the rest time, it will be updated by delta time
+	table.restTimeCorrected = table.restTimeForBetting()
+
 	h.gameIDs = append(h.gameIDs, table.HandID)
 	h.history[table.HandID] = table
 	h.size++
@@ -207,7 +219,7 @@ func (h *gameHistory) updateHistoryState() {
 	}
 }
 
-func (h *gameHistory) update() error {
+func (h *gameHistory) update(dt int64) error {
 	// update history state, history must be history, avoid failures to fetch current then stuck the program
 	h.updateHistoryState()
 
@@ -226,7 +238,7 @@ func (h *gameHistory) update() error {
 	if current == nil {
 		return fmt.Errorf("this is inpossible")
 	}
-	current.updateState()
+	current.updateState(dt)
 
 	return nil
 }
