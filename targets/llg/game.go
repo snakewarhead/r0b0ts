@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	eosContract = "eosio.token"
-	gameAccount = "llgcontract1"
-	historyMax   = 20
+	eosContract             = "eosio.token"
+	gameAccount             = "llgcontract1"
+	historyMax              = 20
 	defaultGameRestInterval = 1000 * time.Millisecond
 )
 
@@ -76,7 +76,6 @@ func (t *llg) doRunLucky() {
 
 	switch currentGame.state {
 	case initTable:
-	case drawingCards:
 		rest := currentGame.restTimeForBetting()
 		utils.Logger.Debug("restTimeForBetting 1 -- %d", rest)
 
@@ -103,14 +102,20 @@ func (t *llg) doRunLucky() {
 		pre := time.Now().UnixNano()
 		currentGame.fetchGameResult()
 		aft := time.Now().UnixNano()
-		utils.Logger.Debug("fetchGameResult -- %d", (aft - pre) / (int64)(time.Millisecond))
+		utils.Logger.Debug("fetchGameResult -- %d", (aft-pre)/(int64)(time.Millisecond))
 		if currentGame.result == nil {
 			return
 		}
 		// betting
-		if err := t.player.betting(currentGame); err != nil {
-			utils.Logger.Error(err)
+		winners := currentGame.result.whoAreWinners()
+		if len(winners) == 0 {
+			return
 		}
+		memo := currentGame.HandID + ":" + winners[0]
+		t.player.betting(currentGame, memo, "1.0000")
+
+	case drawingCards:
+		t.restInterval = defaultGameRestInterval
 	case endTable:
 		// server is down, so do nothing
 		t.restInterval = defaultGameRestInterval

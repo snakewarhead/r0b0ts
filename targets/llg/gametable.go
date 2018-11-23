@@ -49,6 +49,26 @@ func (r *gameResult) isInvalid() bool {
 	return empty || nobodyWin
 }
 
+func (t *gameResult) whoAreWinners() []string {
+	winners := make([]string, 0, 3)
+	if r.PlayerWin {
+		append(winners, "player")
+	}
+	if r.BankerWin {
+		append(winners, "banker")
+	}
+	if r.TieWin {
+		append(winners, "tie")
+	}
+	if r.PlayerPair {
+		append(winners, "playerpair")
+	}
+	if r.BankerPair {
+		append(winners, "bankerpair")
+	}
+	return winners
+}
+
 type gameTable struct {
 	HandID   string `json:"hand_id"`
 	CurrTime int64  `json:"curr_time,string"`

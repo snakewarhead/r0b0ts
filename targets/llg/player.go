@@ -16,9 +16,10 @@ const (
 )
 
 type betInfo struct {
-	handID string
-	txID   string
-	memo   string
+	handID  string
+	txID    string
+	memo    string
+	success bool
 }
 
 type player struct {
@@ -33,16 +34,12 @@ func newPlayer(name string) *player {
 	}
 }
 
-func (p *player) betting(currentGame *gameTable) error {
-	memo := currentGame.HandID + ":player"
-	txid, err := services.PushTransaction(eosContract, p.name, gameAccount, memo, "EOS", true, "1.0000", "")
-	if err != nil {
-		return err
-	}
-	utils.Logger.Info(txid)
+func (p *player) betting(currentGame *gameTable, memo, amount string) error {
+	txid, err := services.PushTransaction(eosContract, p.name, gameAccount, memo, "EOS", true, amount, "")
+	utils.Logger.Info("txid:%s, err:%v", txid, err)
 
-	p.betHistory[currentGame.HandID] = &betInfo{currentGame.HandID, txid, memo}
-
+	// betted yet if err occures
+	p.betHistory[currentGame.HandID] = &betInfo{currentGame.HandID, txid, memo, err == nil}
 	return err
 }
 
