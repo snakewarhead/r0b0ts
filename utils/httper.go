@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,6 +26,7 @@ var (
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 			DisableKeepAlives:     true,
+			TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
 		},
 	}
 	errNotFound = errors.New("resource not found")
